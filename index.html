@@ -1,212 +1,474 @@
-<!DOCTYPE html>
-<html lang="uz">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>生词学习 - Lesson 13</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* 3D Flip Custom Utilities */
-        .perspective-1000 {
-            perspective: 1000px;
-        }
-        .transform-style-3d {
-            transform-style: preserve-3d;
-        }
-        .backface-hidden {
-            backface-visibility: hidden;
-        }
-        .rotate-y-180 {
-            transform: rotateY(180deg);
-        }
-        
-        /* 隐藏滚动条但允许滚动 (如果需要) */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-    </style>
-</head>
-<body class="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-teal-500/30 flex flex-col overflow-x-hidden">
+import React, { useState, useEffect } from 'react';
+import { Volume2, ChevronRight, ChevronLeft, RefreshCw, CheckCircle2, XCircle, BookOpen, MessageCircle, FileText, CheckSquare, Edit3, Award } from 'lucide-react';
 
-    <!-- Header -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-10 shadow-lg">
-        <div class="max-w-6xl mx-auto px-4 py-6">
-            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300 text-center drop-shadow-sm mb-2">
-                我们爱上中文课 (生词学习)
-            </h1>
-            <h2 class="text-center text-slate-400 font-medium tracking-wide">
-                Dilfuza Kāng lǎo shī bilan xitoy tilini o'rganmiz
-            </h2>
+// --- DATA ---
+const VOCABULARY = [
+  { id: 1, hanzi: "新年", pinyin: "xīnnián", uz: "Yangi yil", ru: "Новый год", en: "New Year" },
+  { id: 2, hanzi: "教", pinyin: "jiāo", uz: "o'rgatmoq", ru: "учить, обучать", en: "teach" },
+  { id: 3, hanzi: "花", pinyin: "huā", uz: "gul", ru: "цветок", en: "flower" },
+  { id: 4, hanzi: "希望", pinyin: "xīwàng", uz: "umid qilmoq", ru: "надеяться", en: "hope; wish" },
+  { id: 5, hanzi: "上面", pinyin: "shàngmiàn", uz: "ustida, yuqorida", ru: "наверху, над", en: "surface of an object, above" },
+  { id: 6, hanzi: "洗手间", pinyin: "xǐshǒujiān", uz: "hojatxona", ru: "туалет, ванная", en: "washroom; restroom" },
+  { id: 7, hanzi: "里面", pinyin: "lǐmiàn", uz: "ichida", ru: "внутри", en: "inside" },
+  { id: 8, hanzi: "笔", pinyin: "bǐ", uz: "chiziq (ieroglifda)", ru: "черта (в иероглифе)", en: "stroke" },
+  { id: 9, hanzi: "可能", pinyin: "kěnéng", uz: "ehtimol, mumkin", ru: "возможно, может быть", en: "probably, can" },
+  { id: 10, hanzi: "上网", pinyin: "shàngwǎng", uz: "internetga kirmoq", ru: "заходить в интернет", en: "go online" },
+  { id: 11, hanzi: "那样", pinyin: "nàyàng", uz: "shunday qilib, u holda", ru: "так, таким образом", en: "so that, like that" },
+  { id: 12, hanzi: "告诉", pinyin: "gàosu", uz: "aytmoq", ru: "сказать, сообщить", en: "tell" },
+  { id: 13, hanzi: "班", pinyin: "bān", uz: "sinf, guruh", ru: "класс, группа", en: "class" }
+];
+
+const DIALOGUES = [
+  {
+    title: "Text 1: 在教室 (Sinf xonasida / В классе / In the classroom)",
+    lines: [
+      { speaker: "白家月", hanzi: "时间过得真快啊！新年就要到了。", pinyin: "Shíjiān guò de zhēn kuài a! Xīnnián jiù yào dào le.", uz: "Vaqt qanchalar tez o'tyapti-ya! Yangi yil ham kelib qoldi.", ru: "Как быстро летит время! Новый год уже скоро.", en: "Time flies! The New Year is almost here." },
+      { speaker: "陈天中", hanzi: "这一年王老师教我们中文，每天工作都很累。", pinyin: "Zhè yì nián Wáng lǎoshī jiāo wǒmen Zhōngwén, měi tiān gōngzuò dōu hěn lèi.", uz: "Bu yil Van o'qituvchi bizga xitoy tilini o'rgatdi, har kuni ishlash juda charchatadi.", ru: "В этом году учитель Ван преподавала нам китайский, каждый день работать очень утомительно.", en: "This year, Ms. Wang has been teaching us Chinese, and she works so hard every day." },
+      { speaker: "白家月", hanzi: "是啊，她教得很好。因为她，我们都非常爱上中文课。", pinyin: "Shì a, tā jiāo de hěn hǎo. Yīnwèi tā, wǒmen dōu fēicháng ài shàng Zhōngwén kè.", uz: "Ha, u juda yaxshi o'rgatadi. Uning sharofati bilan hammamiz xitoy tili darslarini yaxshi ko'rib qoldik.", ru: "Да, она отлично преподает. Благодаря ей мы все очень полюбили уроки китайского.", en: "Yes, she teaches very well. Because of her, we all love attending Chinese class." },
+      { speaker: "陈天中", hanzi: "我们给她准备个新年礼物吧。你觉得送给她什么好呢？", pinyin: "Wǒmen gěi tā zhǔnbèi gè xīnnián lǐwù ba. Nǐ juéde sòng gěi tā shénme hǎo ne?", uz: "Kelinglar, unga Yangi yil sovg'asini tayyorlaymiz. Nima sovg'a qilsak bo'ladi deb o'ylaysan?", ru: "Давайте приготовим ей новогодний подарок. Как ты думаешь, что ей подарить?", en: "Let's prepare a New Year's gift for her. What do you think we can present to her?" },
+      { speaker: "白家月", hanzi: "王老师喜欢花，就送给她花吧。", pinyin: "Wáng lǎoshī xǐhuan huā, jiù sòng gěi tā huā ba.", uz: "Van o'qituvchi gullarni yaxshi ko'radi, shuning uchun unga gul sovg'a qilamiz.", ru: "Учитель Ван любит цветы, давайте подарим ей цветы.", en: "Ms. Wang likes flowers. I think we can give her flowers." },
+      { speaker: "陈天中", hanzi: "那我们去花店看看，现在买花的人多，希望花店还有漂亮的花。", pinyin: "Nà wǒmen qù huādiàn kànkan, xiànzài mǎi huā de rén duō, xīwàng huādiàn hái yǒu piàoliang de huā.", uz: "U holda gul do'koniga borib ko'ramiz, hozir gul sotib oluvchilar ko'p, umid qilamanki, do'konda hali chiroyli gullar bor.", ru: "Тогда пойдем в цветочный магазин, сейчас много людей покупают цветы, надеюсь, там еще остались красивые цветы.", en: "Then let's go to the flower shop; there are many people buying flowers now. I hope there are still some beautiful flowers in the shop." }
+    ]
+  },
+  {
+    title: "Text 2: 在教室 (Sinf xonasida / В классе / In the classroom)",
+    lines: [
+      { speaker: "白家月", hanzi: "王老师，今天的词比昨天多了十个。", pinyin: "Wáng lǎoshī, jīntiān de cí bǐ zuótiān duō le shí gè.", uz: "Van o'qituvchi, bugungi so'zlar kechagidan o'ntaga ko'p.", ru: "Учитель Ван, сегодня слов на десять больше, чем вчера.", en: "Ms. Wang, today's vocabulary has ten more words than yesterday's." },
+      { speaker: "王一飞", hanzi: "是啊！你们都学会了吗？", pinyin: "Shì a! Nǐmen dōu xuéhuì le ma?", uz: "Ha! Hammangiz o'rganib oldingizmi?", ru: "Да! Вы все их выучили?", en: "Yes! Have you all learned them?" },
+      { speaker: "安妮", hanzi: "学会了，没有问题。", pinyin: "Xuéhuì le, méiyǒu wèntí.", uz: "O'rgandik, muammo yo'q.", ru: "Выучили, нет проблем.", en: "We've learned them. No problem." },
+      { speaker: "王一飞", hanzi: "好。现在我来说，你们在本子上面写。", pinyin: "Hǎo. Xiànzài wǒ lái shuō, nǐmen zài běnzi shàngmiàn xiě.", uz: "Yaxshi. Hozir men aytaman, sizlar daftarga yozasizlar.", ru: "Хорошо. Сейчас я буду говорить, а вы пишите в тетрадях.", en: "Good. Now I'll say them, and you write them down in your notebooks." },
+      { speaker: "王一飞", hanzi: "同学们，“洗手间”的“间”字写错了，它的里面是“日”，不是“口”。", pinyin: "Tóngxuémen, 'xǐshǒujiān' de 'jiān' zì xiěcuò le, tā de lǐmiàn shì 'rì', bú shì 'kǒu'.", uz: "O'quvchilar, 'xǐshǒujiān' so'zidagi 'jiān' iyeroglifi xato yozilgan, uning ichida 'rì', 'kǒu' emas.", ru: "Ученики, иероглиф 'jiān' в слове 'xǐshǒujiān' написан неверно, внутри него 'rì', а не 'kǒu'.", en: "Class, the character '间' in '洗手间' is wrong. The part inside is '日', not '口'." },
+      { speaker: "白家月", hanzi: "“日”比“口”多一笔，写“口”就是“问题”的“问”了。", pinyin: "'Rì' bǐ 'kǒu' duō yì bǐ, xiě 'kǒu' jiù shì 'wèntí' de 'wèn' le.", uz: "'rì' da 'kǒu' ga qaraganda bitta chiziq ko'p, 'kǒu' ni yozsangiz 'wèntí' so'zidagi 'wèn' bo'lib qoladi.", ru: "В 'rì' на одну черту больше, чем в 'kǒu', если написать 'kǒu', то получится 'wèn' из 'wèntí'.", en: "'日' has one more stroke than '口'. Writing '口' turns it into the '问' in '问题'." },
+      { speaker: "王一飞", hanzi: "没错，你说得很对。", pinyin: "Méi cuò, nǐ shuō de hěn duì.", uz: "To'g'ri, juda to'g'ri aytdingiz.", ru: "Верно, ты абсолютно права.", en: "Yes, you are right." }
+    ]
+  },
+  {
+    title: "Text 3: 在教室 (Sinf xonasida / В классе / In the classroom)",
+    lines: [
+      { speaker: "安妮", hanzi: "家月，你觉得这个本子怎么样？", pinyin: "Jiāyuè, nǐ juéde zhège běnzi zěnmeyàng?", uz: "Jiayue, bu daftar senga qanday tuyuldi?", ru: "Цзяюэ, как тебе эта тетрадь?", en: "Jiayue, what do you think of this notebook?" },
+      { speaker: "白家月", hanzi: "很漂亮，多少钱一个？", pinyin: "Hěn piàoliang, duōshǎo qián yí gè?", uz: "Juda chiroyli, donasi qancha turadi?", ru: "Очень красивая, сколько стоит одна?", en: "It's very pretty. How much is it?" },
+      { speaker: "安妮", hanzi: "比我们一起买的那个本子贵一点儿。", pinyin: "Bǐ wǒmen yìqǐ mǎi de nàge běnzi guì yìdiǎnr.", uz: "Biz birga sotib olgan daftardan biroz qimmatroq.", ru: "Немного дороже той тетради, которую мы купили вместе.", en: "It's a bit more expensive than the notebook we bought together." },
+      { speaker: "白家月", hanzi: "这么漂亮的本子，不可能贵一点儿吧？", pinyin: "Zhème piàoliang de běnzi, bù kěnéng guì yìdiǎnr ba?", uz: "Bunday chiroyli daftar atigi ozgina qimmatroq bo'lishi mumkin emas-ku?", ru: "Такая красивая тетрадь не может быть лишь немного дороже, верно?", en: "For such a beautiful notebook, it couldn't be just a little more expensive, right?" },
+      { speaker: "安妮", hanzi: "我是上网买的，真没那么贵。我买了两个，送你一个。", pinyin: "Wǒ shì shàngwǎng mǎi de, zhēn méi nàme guì. Wǒ mǎi le liǎng gè, sòng nǐ yí gè.", uz: "Men uni internetdan sotib oldim, haqiqatan ham unchalik qimmat emas. Ikkita sotib oldim, bittasini senga sovg'a qilaman.", ru: "Я купила её в интернете, она правда не такая дорогая. Я купила две и подарю тебе одну.", en: "I bought it online, and it's really not that expensive. I bought two and will give you one." },
+      { speaker: "白家月", hanzi: "谢谢！那我送给你什么呢？", pinyin: "Xièxie! Nà wǒ sòng gěi nǐ shénme ne?", uz: "Rahmat! U holda men senga nima sovg'a qilay?", ru: "Спасибо! А что же мне подарить тебе?", en: "Thank you! Then what should I give you in return?" },
+      { speaker: "安妮", hanzi: "咖啡杯吧，我最喜欢喝咖啡了。", pinyin: "Kāfēibēi ba, wǒ zuì xǐhuan hē kāfēi le.", uz: "Kofe finjoni sovg'a qilaqol, men kofe ichishni juda yaxshi ko'raman.", ru: "Кофейную чашку, я больше всего люблю пить кофе.", en: "A coffee cup would be great. I like drinking coffee the most." },
+      { speaker: "白家月", hanzi: "好，那样我们就都有新年礼物了！", pinyin: "Hǎo, nàyàng wǒmen jiù dōu yǒu xīnnián lǐwù le!", uz: "Yaxshi, shunday qilib hammamizda Yangi yil sovg'asi bo'ladi!", ru: "Хорошо, так у нас у обеих будут новогодние подарки!", en: "Alright! Then we'll both have New Year's gifts!" }
+    ]
+  },
+  {
+    title: "Text 4: 在房间 (Xonada / В комнате / In the room)",
+    lines: [
+      { speaker: "白家月", hanzi: "新年就要到了，安妮送给我一个新本子。", pinyin: "Xīnnián jiù yào dào le, Ānnī sòng gěi wǒ yí gè xīn běnzi.", uz: "Yangi yil kirib kelyapti, Anni menga yangi daftar sovg'a qildi.", ru: "Скоро Новый год, Энни подарила мне новую тетрадь.", en: "The New Year is almost here. Annie gave me a new notebook." },
+      { speaker: "白家月", hanzi: "她告诉我是在网上买的，比我的本子贵一点儿。", pinyin: "Tā gàosu wǒ shì zài wǎngshàng mǎi de, bǐ wǒ de běnzi guì yìdiǎnr.", uz: "U menga buni internetdan sotib olganini aytdi, mening daftarimdan biroz qimmatroq ekan.", ru: "Она сказала мне, что купила её в интернете, и она немного дороже моей тетради.", en: "She told me she bought it online, and it's a bit more expensive than mine." },
+      { speaker: "白家月", hanzi: "我们班同学也送了王老师漂亮的花，希望她高高兴兴地过个新年。", pinyin: "Wǒmen bān tóngxué yě sòng le Wáng lǎoshī piàoliang de huā, xīwàng tā gāogāoxìngxìng de guò gè xīnnián.", uz: "Sinfdoshlarimiz ham Van o'qituvchiga chiroyli gullar sovg'a qilishdi, umid qilamizki, u Yangi yilni xursandchilik bilan o'tkazadi.", ru: "Наши одноклассники также подарили учительнице Ван красивые цветы в надежде, что она радостно встретит Новый год.", en: "Our classmates also gave Ms. Wang beautiful flowers, hoping she will have a happy New Year." }
+    ]
+  }
+];
+
+const GRAMMAR = [
+  {
+    title: "1. 双宾语句(2) Double-Object Sentences (2)",
+    uzDesc: "Fe'l ikkita to'ldiruvchini oladi. Birinchi to'ldiruvchi odatda odamga, ikkinchisi narsaga ishora qiladi. Fe'llar: 拿 (olmoq), 送 (sovg'a qilmoq), 卖 (sotmoq) + 给 (bermoq).",
+    ruDesc: "Глагол принимает два дополнения. Первое обычно относится к человеку, второе - к вещи. Глаголы: 拿, 送, 卖 + 给.",
+    enDesc: "A verb takes two objects. Generally, the first object refers to a person, while the second refers to a thing. Verbs used here: 拿, 送, 卖 combined with 给.",
+    examples: [
+      { hanzi: "王老师喜欢花，就送给她花吧。", pinyin: "Wáng lǎoshī xǐhuan huā, jiù sòng gěi tā huā ba.", uz: "Van o'qituvchi gullarni yaxshi ko'radi, shuning uchun unga gul sovg'a qilamiz." },
+      { hanzi: "她拿给我一杯水。", pinyin: "Tā ná gěi wǒ yì bēi shuǐ.", uz: "U menga bir stakan suv olib berdi." },
+      { hanzi: "他卖给我一本中文书。", pinyin: "Tā mài gěi wǒ yì běn Zhōngwén shū.", uz: "U menga bitta xitoy tili kitobini sotdi." }
+    ]
+  },
+  {
+    title: "2. 比较句(7) Comparative Sentences (7)",
+    uzDesc: "A 比 B + Sifat + Sanoq-o'lchov so'zi. '比' ishtirokidagi solishtirma gaplarda sifatdan keyin miqdor kelib, aniq farqni ko'rsatadi.",
+    ruDesc: "В предложениях сравнения с «比» после прилагательного ставится числительно-счетное слово для указания конкретной разницы.",
+    enDesc: "In comparative sentences using '比', numeral-measure word phrases are placed after the adjective to indicate specific difference.",
+    examples: [
+      { hanzi: "今天的词比昨天多了十个。", pinyin: "Jīntiān de cí bǐ zuótiān duō le shí gè.", uz: "Bugungi so'zlar kechagidan o'nta ko'p." },
+      { hanzi: "姐姐比我大三岁。", pinyin: "Jiějie bǐ wǒ dà sān suì.", uz: "Opam mendan uch yosh katta." },
+      { hanzi: "坐飞机比坐火车快五个多小时。", pinyin: "Zuò fēijī bǐ zuò huǒchē kuài wǔ gè duō xiǎoshí.", uz: "Samolyotda uchish poezddan besh soatdan ko'proq tezroq." }
+    ]
+  },
+  {
+    title: "3. 比较句(8) Comparative Sentences (8)",
+    uzDesc: "A 比 B + Sifat + 一点儿/一些. '比' ishtirokidagi solishtirma gaplarda sifatdan keyin '一点儿' yoki '一些' ishlatilib, kichik farqni ko'rsatadi.",
+    ruDesc: "В предложениях сравнения с «比» после прилагательного используется «一点儿» или «一些» для указания небольшой разницы.",
+    enDesc: "In comparative sentences using '比', '一点儿' or '一些' are placed after the adjective to indicate a small difference.",
+    examples: [
+      { hanzi: "比我们一起买的那个本子贵一点儿。", pinyin: "Bǐ wǒmen yìqǐ mǎi de nàge běnzi guì yìdiǎnr.", uz: "Biz birga sotib olgan daftardan biroz qimmatroq." },
+      { hanzi: "姐姐比我高一点儿。", pinyin: "Jiějie bǐ wǒ gāo yìdiǎnr.", uz: "Opam mendan biroz balandroq." },
+      { hanzi: "那间教室比这间大一些。", pinyin: "Nà jiān jiàoshì bǐ zhè jiān dà yìxiē.", uz: "U sinf xonasi bunisidan biroz kattaroq." }
+    ]
+  }
+];
+
+const VOCAB_TEST = VOCABULARY.map(v => {
+  const others = VOCABULARY.filter(vo => vo.id !== v.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+  const options = [v, ...others].sort(() => 0.5 - Math.random());
+  return {
+    question: "Quyidagi iyeroglifning ma'nosini toping:",
+    hanzi: v.hanzi,
+    options: options.map(o => o.uz),
+    correct: v.uz
+  };
+});
+
+const GRAMMAR_TEST = [
+  { q: "老师送___一本书。", options: ["我", "对"], correct: "我" },
+  { q: "今天的生词比昨天___三个。", options: ["多了", "多"], correct: "多了" },
+  { q: "这个苹果___那个大一点儿。", options: ["比", "和"], correct: "比" },
+  { q: "我拿___他一杯咖啡。", options: ["给", "送"], correct: "给" },
+  { q: "哥哥比弟弟___两岁。", options: ["大", "大了"], correct: "大" },
+  { q: "这件衣服比那件贵___。", options: ["一点儿", "三个"], correct: "一点儿" },
+  { q: "飞机比火车快___小时。", options: ["五个多", "一点儿"], correct: "五个多" },
+  { q: "我卖___她一辆自行车。", options: ["给", "来"], correct: "给" },
+  { q: "昨天的天气___今天好一些。", options: ["比", "有"], correct: "比" },
+  { q: "妹妹比我___一点儿。", options: ["高", "高了"], correct: "高" }
+];
+
+const FILL_BLANKS_TEST = [
+  { q: "你们___有多少学生？", correct: "班", options: ["班", "笔", "花", "新年"] },
+  { q: "我经常___听歌、看电影。", correct: "上网", options: ["上网", "告诉", "可能", "教"] },
+  { q: "教室的门开着，但是___没有人。", correct: "里面", options: ["里面", "上面", "洗手间", "那样"] },
+  { q: "她___去洗手间了。", correct: "可能", options: ["可能", "希望", "告诉", "教"] },
+  { q: "家月___我你已经接到她们了。", correct: "告诉", options: ["告诉", "上网", "新年", "笔"] },
+  { q: "祝大家___快乐！", correct: "新年", options: ["新年", "班", "花", "里面"] },
+  { q: "王老师___我们汉语。", correct: "教", options: ["教", "告诉", "希望", "可能"] },
+  { q: "春天来了，公园里有很多漂亮的___。", correct: "花", options: ["花", "笔", "洗手间", "班"] },
+  { q: "我___明天天气会很好。", correct: "希望", options: ["希望", "告诉", "教", "上网"] },
+  { q: "书在桌子___。", correct: "上面", options: ["上面", "里面", "那样", "洗手间"] },
+  { q: "请问___在哪儿？", correct: "洗手间", options: ["洗手间", "班", "里面", "上面"] },
+  { q: "汉字“日”比“口”多一___。", correct: "笔", options: ["笔", "花", "班", "新年"] },
+  { q: "只要你努力，___你就能成功。", correct: "那样", options: ["那样", "可能", "告诉", "上网"] }
+];
+
+// --- COMPONENTS ---
+
+const playAudio = (text) => {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 0.85;
+    window.speechSynthesis.speak(utterance);
+  }
+};
+
+const Flashcards = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const card = VOCABULARY[currentIndex];
+
+  const handlePrev = () => {
+    setCurrentIndex(prev => prev > 0 ? prev - 1 : VOCABULARY.length - 1);
+    setIsFlipped(false);
+  };
+
+  const handleNext = () => {
+    setCurrentIndex(prev => prev < VOCABULARY.length - 1 ? prev + 1 : 0);
+    setIsFlipped(false);
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center space-y-6 w-full max-w-2xl mx-auto py-8">
+      <div 
+        onClick={() => setIsFlipped(!isFlipped)}
+        className="cursor-pointer bg-slate-800 border border-slate-700 shadow-2xl rounded-2xl p-10 w-full text-center relative overflow-hidden transition-all duration-300 hover:shadow-teal-900/20 min-h-[450px] flex flex-col justify-center"
+      >
+        <div className="absolute top-4 right-4 text-slate-500 font-mono text-sm">
+          {currentIndex + 1} / {VOCABULARY.length}
         </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="flex-1 max-w-2xl w-full mx-auto px-4 py-12 flex flex-col items-center justify-center">
         
-        <!-- Flashcard Container -->
-        <div class="perspective-1000 w-full h-[500px] mb-8 cursor-pointer group" id="card-container">
+        {!isFlipped ? (
+          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300">
+            <button 
+              onClick={(e) => { e.stopPropagation(); playAudio(card.hanzi); }}
+              className="mx-auto bg-teal-500/10 text-teal-400 p-5 rounded-full mb-8 hover:bg-teal-500/20 transition-colors"
+            >
+              <Volume2 size={40} />
+            </button>
+            <h2 className="text-8xl sm:text-9xl font-bold text-white mb-8 drop-shadow-md">{card.hanzi}</h2>
+            <p className="text-slate-500 mt-4 text-sm font-medium tracking-wider animate-pulse">Ko'rish uchun bosing (点击翻转)</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-300 w-full">
+            <button 
+              onClick={(e) => { e.stopPropagation(); playAudio(card.hanzi); }}
+              className="mx-auto bg-teal-500/10 text-teal-400 p-3 rounded-full mb-4 hover:bg-teal-500/20 transition-colors"
+            >
+              <Volume2 size={24} />
+            </button>
+            <h2 className="text-5xl font-bold text-white mb-2 drop-shadow-md">{card.hanzi}</h2>
+            <p className="text-3xl text-teal-400 font-medium mb-6 font-sans">{card.pinyin}</p>
             
-            <!-- Card Inner (handles the 3D flip) -->
-            <div id="card-inner" class="relative w-full h-full transition-transform duration-500 transform-style-3d shadow-2xl rounded-3xl">
-                
-                <!-- Front Face -->
-                <div class="absolute inset-0 backface-hidden bg-slate-800 border border-slate-700 rounded-3xl p-10 flex flex-col items-center justify-center text-center group-hover:shadow-teal-900/20 transition-all">
-                    <div class="absolute top-6 right-6 text-slate-500 font-mono text-sm" id="counter-front">1 / 13</div>
-                    
-                    <button id="audio-btn-front" class="mx-auto bg-teal-500/10 text-teal-400 p-5 rounded-full mb-8 hover:bg-teal-500/20 transition-colors z-10 relative">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                    </button>
-                    
-                    <h2 id="hanzi-front" class="text-8xl sm:text-9xl font-bold text-white mb-8 drop-shadow-md">新年</h2>
-                    <p class="text-slate-500 mt-4 text-sm font-medium tracking-wider animate-pulse">Ko'rish uchun bosing (点击翻转)</p>
-                </div>
-
-                <!-- Back Face -->
-                <div class="absolute inset-0 backface-hidden rotate-y-180 bg-slate-800 border border-slate-700 rounded-3xl p-8 flex flex-col items-center justify-center text-center overflow-hidden">
-                    <div class="absolute top-6 right-6 text-slate-500 font-mono text-sm" id="counter-back">1 / 13</div>
-                    
-                    <button id="audio-btn-back" class="mx-auto bg-teal-500/10 text-teal-400 p-3 rounded-full mb-4 hover:bg-teal-500/20 transition-colors z-10 relative">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
-                    </button>
-
-                    <h2 id="hanzi-back" class="text-5xl font-bold text-white mb-2 drop-shadow-md">新年</h2>
-                    <p id="pinyin-back" class="text-3xl text-teal-400 font-medium mb-6 font-sans">xīnnián</p>
-                    
-                    <div class="space-y-3 text-lg w-full max-w-sm">
-                        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50 text-slate-200 text-left">
-                            <span class="text-xs text-teal-500/70 font-bold uppercase tracking-wider block mb-1">Uzbek</span>
-                            <span id="uz-text">Yangi yil</span>
-                        </div>
-                        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50 text-slate-200 text-left">
-                            <span class="text-xs text-blue-400/70 font-bold uppercase tracking-wider block mb-1">Russian</span>
-                            <span id="ru-text">Новый год</span>
-                        </div>
-                        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50 text-slate-200 text-left">
-                            <span class="text-xs text-emerald-400/70 font-bold uppercase tracking-wider block mb-1">English</span>
-                            <span id="en-text">New Year</span>
-                        </div>
-                    </div>
-                </div>
+            <div className="space-y-3 text-lg w-full max-w-sm">
+              <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 text-slate-200">
+                <span className="text-xs text-teal-500/70 font-bold uppercase tracking-wider block mb-1">Uzbek</span>
+                {card.uz}
+              </div>
+              <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 text-slate-200">
+                <span className="text-xs text-blue-400/70 font-bold uppercase tracking-wider block mb-1">Russian</span>
+                {card.ru}
+              </div>
+              <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 text-slate-200">
+                <span className="text-xs text-emerald-400/70 font-bold uppercase tracking-wider block mb-1">English</span>
+                {card.en}
+              </div>
             </div>
-        </div>
+          </div>
+        )}
+      </div>
 
-        <!-- Controls -->
-        <div class="flex space-x-6 w-full justify-center">
-            <button id="prev-btn" class="flex items-center px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-2xl shadow-lg transition-colors border border-slate-700">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                Oldingisi
+      <div className="flex space-x-6 w-full justify-center">
+        <button 
+          onClick={handlePrev}
+          className="flex items-center px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl shadow-lg transition-colors border border-slate-700"
+        >
+          <ChevronLeft className="mr-2" /> Oldingisi
+        </button>
+        <button 
+          onClick={handleNext}
+          className="flex items-center px-6 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl shadow-lg transition-colors"
+        >
+          Keyingisi <ChevronRight className="ml-2" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const QuizComponent = ({ title, data, isHanziOptions = false }) => {
+  const [currentQ, setCurrentQ] = useState(0);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [answered, setAnswered] = useState(false);
+
+  const handleAnswer = (option) => {
+    if (answered) return;
+    setSelected(option);
+    setAnswered(true);
+    if (option === data[currentQ].correct) setScore(s => s + 1);
+  };
+
+  const nextQ = () => {
+    if (currentQ < data.length - 1) {
+      setCurrentQ(prev => prev + 1);
+      setSelected(null);
+      setAnswered(false);
+    } else {
+      setShowResult(true);
+    }
+  };
+
+  const reset = () => {
+    setCurrentQ(0);
+    setScore(0);
+    setShowResult(false);
+    setSelected(null);
+    setAnswered(false);
+  };
+
+  if (showResult) {
+    return (
+      <div className="text-center bg-slate-800 p-12 rounded-2xl border border-slate-700 shadow-xl max-w-xl mx-auto my-12">
+        <Award className="w-24 h-24 mx-auto text-teal-400 mb-6" />
+        <h2 className="text-3xl font-bold text-white mb-4">Natija!</h2>
+        <p className="text-xl text-slate-300 mb-8">Siz {data.length} ta savoldan <span className="text-teal-400 font-bold text-2xl">{score}</span> tasiga to'g'ri javob berdingiz.</p>
+        <button onClick={reset} className="flex items-center mx-auto px-8 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl shadow-lg transition-all font-semibold">
+          <RefreshCw className="mr-2" /> Qayta urinish
+        </button>
+      </div>
+    );
+  }
+
+  const q = data[currentQ];
+
+  return (
+    <div className="max-w-2xl mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl my-8">
+      <div className="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+        <h3 className="text-lg font-semibold text-slate-400">{title}</h3>
+        <span className="bg-slate-900 px-4 py-1.5 rounded-full text-teal-400 font-mono font-bold text-sm">
+          {currentQ + 1} / {data.length}
+        </span>
+      </div>
+
+      <div className="mb-10 text-center">
+        {q.question && <p className="text-slate-400 mb-4 text-lg">{q.question}</p>}
+        {q.hanzi && <h2 className="text-6xl font-bold text-white mb-6 drop-shadow-md">{q.hanzi}</h2>}
+        {!q.hanzi && <h2 className="text-3xl font-bold text-white mb-6 leading-relaxed">{q.q}</h2>}
+      </div>
+
+      <div className="space-y-4">
+        {q.options.map((opt, i) => {
+          let stateClass = "bg-slate-700/50 text-slate-200 hover:bg-slate-700 border-slate-600";
+          if (answered) {
+            if (opt === q.correct) stateClass = "bg-teal-900/50 border-teal-500 text-teal-300";
+            else if (opt === selected) stateClass = "bg-red-900/50 border-red-500 text-red-300";
+            else stateClass = "bg-slate-800 border-slate-700 text-slate-500 opacity-50";
+          }
+
+          return (
+            <button
+              key={i}
+              onClick={() => handleAnswer(opt)}
+              disabled={answered}
+              className={`w-full text-left p-5 rounded-xl border-2 transition-all flex justify-between items-center ${isHanziOptions ? 'text-2xl font-bold' : 'text-lg'} ${stateClass}`}
+            >
+              <span>{opt}</span>
+              {answered && opt === q.correct && <CheckCircle2 className="text-teal-500" />}
+              {answered && opt === selected && opt !== q.correct && <XCircle className="text-red-500" />}
             </button>
-            <button id="next-btn" class="flex items-center px-8 py-4 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-2xl shadow-lg transition-colors">
-                Keyingisi 
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-2"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
+          );
+        })}
+      </div>
+
+      {answered && (
+        <div className="mt-8 flex justify-end">
+          <button onClick={nextQ} className="flex items-center px-8 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl shadow-lg transition-all font-semibold">
+            {currentQ < data.length - 1 ? 'Keyingisi' : 'Natijani ko\'rish'} <ChevronRight className="ml-2" />
+          </button>
         </div>
+      )}
+    </div>
+  );
+};
 
-    </main>
+const Dialogues = () => {
+  return (
+    <div className="max-w-4xl mx-auto space-y-12 py-8">
+      {DIALOGUES.map((dialogue, idx) => (
+        <div key={idx} className="bg-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
+          <div className="bg-slate-900/80 px-6 py-4 border-b border-slate-700">
+            <h3 className="text-xl font-bold text-teal-400">{dialogue.title}</h3>
+          </div>
+          <div className="divide-y divide-slate-700/50">
+            {dialogue.lines.map((line, i) => (
+              <div key={i} className="p-6 hover:bg-slate-750 transition-colors flex gap-4">
+                <button 
+                  onClick={() => playAudio(line.hanzi)}
+                  className="flex-shrink-0 mt-1 bg-slate-700 text-teal-400 p-2 rounded-full hover:bg-teal-600 hover:text-white transition-all h-fit"
+                >
+                  <Volume2 size={20} />
+                </button>
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap items-baseline gap-3 mb-2">
+                    <span className="px-2 py-1 bg-slate-900 text-slate-300 text-xs font-bold rounded-md uppercase tracking-wider">{line.speaker}</span>
+                    <span className="text-2xl font-bold text-white">{line.hanzi}</span>
+                  </div>
+                  <p className="text-teal-400 font-medium mb-3">{line.pinyin}</p>
+                  <div className="grid gap-2 text-sm text-slate-400 mt-4 bg-slate-900/30 p-4 rounded-lg">
+                    <p><span className="text-slate-500 font-medium w-6 inline-block">UZ:</span> {line.uz}</p>
+                    <p><span className="text-slate-500 font-medium w-6 inline-block">RU:</span> {line.ru}</p>
+                    <p><span className="text-slate-500 font-medium w-6 inline-block">EN:</span> {line.en}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
-    <!-- Footer -->
-    <footer class="bg-slate-950 border-t border-slate-800 py-8 text-center text-slate-500 text-sm mt-auto">
-        <p class="font-semibold text-slate-400 mb-1">HSK 2 NEW3.0 - Lesson 13</p>
-        <p>&copy; 2026 Dilfuza Kāng lǎo shī (telegram@diffila)</p>
-    </footer>
+const GrammarExplanations = () => {
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 py-8">
+      {GRAMMAR.map((point, idx) => (
+        <div key={idx} className="bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-xl">
+          <h3 className="text-2xl font-bold text-white mb-6 border-b border-slate-700 pb-4">{point.title}</h3>
+          
+          <div className="space-y-4 mb-8">
+            <p className="text-slate-300 flex items-start gap-3"><span className="bg-slate-900 px-2 py-1 rounded text-xs font-bold text-teal-500 mt-0.5">UZ</span> <span>{point.uzDesc}</span></p>
+            <p className="text-slate-400 flex items-start gap-3"><span className="bg-slate-900 px-2 py-1 rounded text-xs font-bold text-blue-400 mt-0.5">RU</span> <span>{point.ruDesc}</span></p>
+            <p className="text-slate-400 flex items-start gap-3"><span className="bg-slate-900 px-2 py-1 rounded text-xs font-bold text-emerald-400 mt-0.5">EN</span> <span>{point.enDesc}</span></p>
+          </div>
 
-    <!-- Application Logic -->
-    <script>
-        const VOCABULARY = [
-            { id: 1, hanzi: "新年", pinyin: "xīnnián", uz: "Yangi yil", ru: "Новый год", en: "New Year" },
-            { id: 2, hanzi: "教", pinyin: "jiāo", uz: "o'rgatmoq", ru: "учить, обучать", en: "teach" },
-            { id: 3, hanzi: "花", pinyin: "huā", uz: "gul", ru: "цветок", en: "flower" },
-            { id: 4, hanzi: "希望", pinyin: "xīwàng", uz: "umid qilmoq", ru: "надеяться", en: "hope; wish" },
-            { id: 5, hanzi: "上面", pinyin: "shàngmiàn", uz: "ustida, yuqorida", ru: "наверху, над", en: "surface of an object, above" },
-            { id: 6, hanzi: "洗手间", pinyin: "xǐshǒujiān", uz: "hojatxona", ru: "туалет, ванная", en: "washroom; restroom" },
-            { id: 7, hanzi: "里面", pinyin: "lǐmiàn", uz: "ichida", ru: "внутри", en: "inside" },
-            { id: 8, hanzi: "笔", pinyin: "bǐ", uz: "chiziq (ieroglifda)", ru: "черта (в иероглифе)", en: "stroke" },
-            { id: 9, hanzi: "可能", pinyin: "kěnéng", uz: "ehtimol, mumkin", ru: "возможно, может быть", en: "probably, can" },
-            { id: 10, hanzi: "上网", pinyin: "shàngwǎng", uz: "internetga kirmoq", ru: "заходить в интернет", en: "go online" },
-            { id: 11, hanzi: "那样", pinyin: "nàyàng", uz: "shunday qilib, u holda", ru: "так, таким образом", en: "so that, like that" },
-            { id: 12, hanzi: "告诉", pinyin: "gàosu", uz: "aytmoq", ru: "сказать, сообщить", en: "tell" },
-            { id: 13, hanzi: "班", pinyin: "bān", uz: "sinf, guruh", ru: "класс, группа", en: "class" }
-        ];
+          <h4 className="text-lg font-semibold text-teal-400 mb-4">Misollar (Examples):</h4>
+          <div className="space-y-4">
+            {point.examples.map((ex, i) => (
+              <div key={i} className="bg-slate-900/50 p-5 rounded-xl border border-slate-700/50 flex gap-4">
+                 <button 
+                  onClick={() => playAudio(ex.hanzi)}
+                  className="flex-shrink-0 bg-slate-800 text-teal-400 p-2.5 rounded-full hover:bg-teal-600 hover:text-white transition-all h-fit"
+                >
+                  <Volume2 size={18} />
+                </button>
+                <div>
+                  <p className="text-xl font-bold text-white mb-1">{ex.hanzi}</p>
+                  <p className="text-teal-400/80 mb-2">{ex.pinyin}</p>
+                  <p className="text-slate-400 text-sm">{ex.uz}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
-        let currentIndex = 0;
-        let isFlipped = false;
+export default function App() {
+  const [activeTab, setActiveTab] = useState('flashcards');
 
-        // DOM Elements
-        const cardContainer = document.getElementById('card-container');
-        const cardInner = document.getElementById('card-inner');
-        const prevBtn = document.getElementById('prev-btn');
-        const nextBtn = document.getElementById('next-btn');
+  const tabs = [
+    { id: 'flashcards', label: 'Fleshkartalar', icon: <BookOpen size={18} /> },
+    { id: 'vocabTest', label: 'Lug\'at testi', icon: <CheckSquare size={18} /> },
+    { id: 'dialogue', label: 'Muloqot', icon: <MessageCircle size={18} /> },
+    { id: 'grammar', label: 'Grammatika', icon: <FileText size={18} /> },
+    { id: 'grammarTest', label: 'Grammatika testi', icon: <CheckSquare size={18} /> },
+    { id: 'fillBlanks', label: 'So\'zlarni to\'ldirish', icon: <Edit3 size={18} /> }
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-200 font-sans selection:bg-teal-500/30 overflow-x-hidden">
+      {/* Header */}
+      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-10 shadow-lg">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-300 text-center drop-shadow-sm mb-2">
+            我们爱上中文课 (Lesson 13)
+          </h1>
+          <h2 className="text-center text-slate-400 font-medium tracking-wide">
+            Dilfuza Kāng lǎo shī bilan xitoy tilini o'rganmiz
+          </h2>
+        </div>
         
-        const audioBtnFront = document.getElementById('audio-btn-front');
-        const audioBtnBack = document.getElementById('audio-btn-back');
+        {/* Navigation */}
+        <div className="w-full overflow-x-auto custom-scrollbar border-t border-slate-800 bg-slate-900/50 backdrop-blur-md">
+          <div className="flex justify-start md:justify-center w-max min-w-full px-4">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-6 py-4 font-medium text-sm transition-all whitespace-nowrap border-b-2
+                  ${activeTab === tab.id 
+                    ? 'border-teal-400 text-teal-400 bg-teal-400/10' 
+                    : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800'}`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
 
-        // Render Data Functions
-        function renderCard() {
-            const card = VOCABULARY[currentIndex];
-            
-            document.getElementById('counter-front').innerText = `${currentIndex + 1} / ${VOCABULARY.length}`;
-            document.getElementById('counter-back').innerText = `${currentIndex + 1} / ${VOCABULARY.length}`;
-            
-            document.getElementById('hanzi-front').innerText = card.hanzi;
-            document.getElementById('hanzi-back').innerText = card.hanzi;
-            document.getElementById('pinyin-back').innerText = card.pinyin;
-            document.getElementById('uz-text').innerText = card.uz;
-            document.getElementById('ru-text').innerText = card.ru;
-            document.getElementById('en-text').innerText = card.en;
-        }
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-4 py-8 min-h-[calc(100vh-250px)]">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {activeTab === 'flashcards' && <Flashcards />}
+          {activeTab === 'vocabTest' && <QuizComponent title="Lug'at testi (Vocabulary Test)" data={VOCAB_TEST} />}
+          {activeTab === 'dialogue' && <Dialogues />}
+          {activeTab === 'grammar' && <GrammarExplanations />}
+          {activeTab === 'grammarTest' && <QuizComponent title="Grammatika testi" data={GRAMMAR_TEST} isHanziOptions={true} />}
+          {activeTab === 'fillBlanks' && <QuizComponent title="So'zlarni to'ldirish (Fill in the blanks)" data={FILL_BLANKS_TEST} isHanziOptions={true} />}
+        </div>
+      </main>
 
-        function updateFlip() {
-            if (isFlipped) {
-                cardInner.classList.add('rotate-y-180');
-            } else {
-                cardInner.classList.remove('rotate-y-180');
-            }
-        }
-
-        // Audio Playback
-        function playAudio(e) {
-            e.stopPropagation(); // 阻止点击事件冒泡，防止触发卡片翻转
-            const text = VOCABULARY[currentIndex].hanzi;
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'zh-CN';
-                utterance.rate = 0.85;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        // Event Listeners
-        cardContainer.addEventListener('click', () => {
-            isFlipped = !isFlipped;
-            updateFlip();
-        });
-
-        prevBtn.addEventListener('click', () => {
-            currentIndex = currentIndex > 0 ? currentIndex - 1 : VOCABULARY.length - 1;
-            isFlipped = false;
-            updateFlip();
-            // Wait slightly for flip animation to start before changing text
-            setTimeout(renderCard, 150);
-        });
-
-        nextBtn.addEventListener('click', () => {
-            currentIndex = currentIndex < VOCABULARY.length - 1 ? currentIndex + 1 : 0;
-            isFlipped = false;
-            updateFlip();
-            // Wait slightly for flip animation to start before changing text
-            setTimeout(renderCard, 150);
-        });
-
-        audioBtnFront.addEventListener('click', playAudio);
-        audioBtnBack.addEventListener('click', playAudio);
-
-        // Initialization
-        renderCard();
-    </script>
-</body>
-</html>
+      {/* Footer */}
+      <footer className="bg-slate-950 border-t border-slate-800 py-8 text-center text-slate-500 text-sm mt-auto">
+        <p className="font-semibold text-slate-400 mb-1">HSK 2 NEW3.0 - Lesson 13</p>
+        <p>&copy; 2026 Dilfuza Kāng lǎo shī (telegram@diffila)</p>
+      </footer>
+    </div>
+  );
+}
